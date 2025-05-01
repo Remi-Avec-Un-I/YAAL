@@ -1,0 +1,9 @@
+[package]
+name = "yaal"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]  
+gtk = "0.18.2"
+glib = "0.20.9"
+
