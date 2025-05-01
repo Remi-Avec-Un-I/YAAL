@@ -1,25 +1,17 @@
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button};
 
-fn on_activate(app: &gtk::Application) {
-    let window = gtk::ApplicationWindow::new(app);
-    window.set_title("Yaal");
-    window.set_default_size(400, 300);
-    window.show_all();
-    let button = Button::with_label("Click me");
-    window.add(&button);
+mod app;
+mod ui;
 
-    button.connect_clicked(|_| {
-        println!("Button clicked!");
-    });     
-}
+const APP_ID: &str = "com.github.yaal";
 
-fn main() {
+fn main() -> glib::ExitCode { 
     let app = gtk::Application::builder()
-        .application_id("com.github.yaal")
+        .application_id(APP_ID)
         .build();
 
-    app.connect_activate(on_activate);
+    app.connect_startup(|_| app::load_css());
+    app.connect_activate(app::on_activate);
 
-    app.run();
+    app.run()
 }
