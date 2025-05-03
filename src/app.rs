@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::fs::File;
 use std::io::prelude::*;
 use crate::ui;
+use crate::loader::loader;
 
 pub fn get_config_dir() -> PathBuf {
     let mut config_dir = dirs::config_dir().expect("Could not find config directory");
@@ -16,7 +17,7 @@ pub fn get_config_dir() -> PathBuf {
 pub fn on_activate(app: &gtk::Application) {
     let config_dir = get_config_dir();
     println!("Config directory: {}", config_dir.display());
-
+    load_plugin();
     let window = gtk::ApplicationWindow::builder()
         .application(app)
         .title("Yaal")
@@ -51,4 +52,11 @@ pub fn load_css() {
         &provider,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
+}
+
+pub fn load_plugin() -> Vec<loader::Plugin> {
+    let mut path = get_config_dir();
+    path.push("plugins");
+    std::fs::create_dir_all(&path).expect("Could not create plugins directory");
+    loader::load_plugins(&path)
 }

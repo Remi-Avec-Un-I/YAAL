@@ -1,6 +1,7 @@
 use gtk::prelude::*;
 
 mod app;
+mod loader;
 mod ui;
 
 const APP_ID: &str = "com.github.yaal";
