@@ -1,11 +1,11 @@
+use crate::loader::loader;
+use crate::ui;
 use gdk::Display;
-use gtk::prelude::*;
 use gtk::CssProvider;
-use std::path::PathBuf;
+use gtk::prelude::*;
 use std::fs::File;
 use std::io::prelude::*;
-use crate::ui;
-use crate::loader::loader;
+use std::path::PathBuf;
 
 pub fn get_config_dir() -> PathBuf {
     let mut config_dir = dirs::config_dir().expect("Could not find config directory");
@@ -15,9 +15,6 @@ pub fn get_config_dir() -> PathBuf {
 }
 
 pub fn on_activate(app: &gtk::Application) {
-    let config_dir = get_config_dir();
-    println!("Config directory: {}", config_dir.display());
-    load_plugin();
     let window = gtk::ApplicationWindow::builder()
         .application(app)
         .title("Yaal")
@@ -27,8 +24,8 @@ pub fn on_activate(app: &gtk::Application) {
         .resizable(false)
         .build();
 
-    ui::window::window(&window);
-    
+    ui::window::window(&window, load_plugin());
+
     window.set_default_size(400, 300);
     window.present();
 }
@@ -36,14 +33,15 @@ pub fn on_activate(app: &gtk::Application) {
 pub fn load_css() {
     let config_dir = get_config_dir();
     let css_path = config_dir.join("style.css");
-    
+
     let provider = CssProvider::new();
-    
+
     if css_path.exists() {
         provider.load_from_path(&css_path);
     } else {
         let mut file = File::create(&css_path).expect("Could not create CSS file");
-        file.write_all(include_bytes!("default.css")).expect("Could not write CSS file");
+        file.write_all(include_bytes!("default.css"))
+            .expect("Could not write CSS file");
         provider.load_from_path(&css_path);
     }
 
