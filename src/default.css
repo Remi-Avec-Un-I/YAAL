@@ -1,3 +1,53 @@
+/* Main container */
 box {
-    background-color: #2b2b2b;
+    background-color: #23272e;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+/* Input bar */
+entry {
+    background: #313640;
+    color: #f8f8f2;
+    border-radius: 8px;
+    border: 1px solid #444857;
+    padding: 8px 12px;
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+/* List box */
+list-box {
+    background: transparent;
+    border-radius: 8px;
+    padding: 0;
+}
+
+list {
+    background: transparent;
+}
+
+listboxrow {
+    background: #282c34;
+    color: #f8f8f2;
+    border-radius: 6px;
+    margin: 4px 0;
+    padding: 6px 10px;
+    font-size: 15px;
+    transition: background 0.2s;
+}
+
+listboxrow:selected, listboxrow:hover {
+    background: #3a3f4b;
+    color: #ffffff;
+}
+
+label {
+    color: #f8f8f2;
+    font-size: 15px;
+}
+
+image {
+    margin-right: 8px;
 }

@@ -24,7 +24,7 @@ pub fn on_activate(app: &gtk::Application) {
         .resizable(false)
         .build();
 
-    ui::window::window(&window, load_plugin());
+    ui::window::window(&window, load_plugin(), &app);
 
     window.set_default_size(400, 300);
     window.present();
@@ -44,7 +44,7 @@ pub fn load_css() {
             .expect("Could not write CSS file");
         provider.load_from_path(&css_path);
     }
-
+    println!("Loaded CSS file : {}", css_path.display());
     gtk::style_context_add_provider_for_display(
         &Display::default().expect("Could not connect to a display."),
         &provider,
