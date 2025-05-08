@@ -33,12 +33,42 @@ pub struct EntryList {
     pub length: usize,
 }
 
+#[repr(C)]
+pub struct PathsArray {
+    pub paths: *const *const c_char,
+    pub length: usize,
+}
+
+#[repr(C)]
+pub struct RespData {
+    pub paths: *const PathsArray,
+    pub light_paths: *const PathsArray,
+    pub local_paths: *const PathsArray,
+    pub xdg_paths: *const PathsArray,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct ReqData {
+    pub paths: bool,
+    pub light_paths: bool,
+    pub local_paths: bool,
+    pub xdg_paths: bool,
+}
+
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct Plugin {
     pub info: PluginInfo,
+    pub req_data: ReqData,
     pub get_entries: unsafe extern "C" fn() -> EntryList,
     pub handle_selection: unsafe extern "C" fn(selection: *const c_char) -> bool,
+    pub set_data: unsafe extern "C" fn(
+        paths: *const PathsArray,
+        light_paths: *const PathsArray,
+        local_paths: *const PathsArray,
+        xdg_paths: *const PathsArray,
+    ),
 }
 
 pub fn load_plugins(path: &Path) -> Vec<Plugin> {
@@ -72,10 +102,25 @@ fn load_plugin(path: &PathBuf) -> Plugin {
             Ok(lib) => {
                 match (
                     lib.get::<*const PluginInfo>(b"PLUGIN_INFO"),
+                    lib.get::<*const ReqData>(b"REQ_DATA"),
                     lib.get::<unsafe extern "C" fn() -> EntryList>(b"get_entries"),
-                    lib.get::<unsafe extern "C" fn(selection: *const c_char) -> bool>(b"handle_selection"),
+                    lib.get::<unsafe extern "C" fn(selection: *const c_char) -> bool>(
+                        b"handle_selection",
+                    ),
+                    lib.get::<unsafe extern "C" fn(
+                        paths: *const PathsArray,
+                        light_paths: *const PathsArray,
+                        local_paths: *const PathsArray,
+                        xdg_paths: *const PathsArray,
+                    )>(b"set_data"),
                 ) {
-                    (Ok(info_ptr), Ok(get_entries), Ok(handle_selection)) => {
+                    (
+                        Ok(info_ptr),
+                        Ok(req_data_ptr),
+                        Ok(get_entries),
+                        Ok(handle_selection),
+                        Ok(set_data),
+                    ) => {
                         let info: &PluginInfo = &**info_ptr;
                         println!("Plugin Info:");
                         println!("  Name: {}", CStr::from_ptr(info.name).to_string_lossy());
@@ -89,8 +134,10 @@ fn load_plugin(path: &PathBuf) -> Plugin {
                         );
                         let plugin = Plugin {
                             info: *info,
+                            req_data: **req_data_ptr,
                             get_entries: *get_entries,
                             handle_selection: *handle_selection,
+                            set_data: *set_data,
                         };
                         std::mem::forget(lib);
                         plugin

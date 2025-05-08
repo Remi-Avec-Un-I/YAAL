@@ -1,7 +1,6 @@
-use gtk::{prelude::*, EventControllerKey};
+use gtk::{EventControllerKey, prelude::*};
+use std::cell::RefCell;
 use std::ffi::CStr;
-use std::any::Any;
-use std::ptr::NonNull;
 
 use crate::logic::entries::IndexedEntry;
 
@@ -18,31 +17,41 @@ pub fn input_bar() -> gtk::Entry {
         .build()
 }
 
-
-pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_bar: &gtk::Entry, app: &gtk::Application) -> gtk::ListBox {
+pub fn list_box(
+    indexed_entries: Vec<IndexedEntry>,
+    search_query: String,
+    input_bar: &gtk::Entry,
+    app: &gtk::Application,
+) -> gtk::ListBox {
     let list_box = gtk::ListBox::builder()
         .css_name("list-box")
         .selection_mode(gtk::SelectionMode::Single)
         .build();
-    
-    populate_list_box(&list_box, indexed_entries.clone(), search_query);
-    
+
+    populate_list_box(&list_box, indexed_entries.clone(), search_query, app);
+    let activate_child = RefCell::new(-1);
     let list_box_weak = list_box.downgrade();
-    
+
+    let app_clone = app.clone();
     let indexed_entries = indexed_entries.clone();
-    
+    let activate_child_clone = activate_child.clone();
+
     input_bar.connect_changed(move |entry| {
         if let Some(list_box) = list_box_weak.upgrade() {
             let query = entry.text();
-            println!("query: {}", query);
-            populate_list_box(&list_box, indexed_entries.clone(), query.to_string());
+            *activate_child_clone.borrow_mut() = -1;
+            populate_list_box(
+                &list_box,
+                indexed_entries.clone(),
+                query.to_string(),
+                &app_clone,
+            );
         }
     });
 
     let list_box_weak_activate = list_box.downgrade();
     let app = app.clone();
     input_bar.connect_activate(move |_entry| {
-        println!("Enter key pressed");
         if let Some(list_box) = list_box_weak_activate.upgrade() {
             if let Some(first_app) = list_box.first_child() {
                 first_app.activate();
@@ -64,8 +73,29 @@ pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_
     });
 
     let enter_controller = EventControllerKey::new();
+    let list_box_clone = list_box.clone();
+    let activate_child_clone = activate_child.clone();
     enter_controller.connect_key_pressed(move |_, key, _, _| {
         println!("key: {}", key);
+        if key == gdk::Key::Down {
+            if key == gdk::Key::Down {
+                *activate_child_clone.borrow_mut() = 0;
+                if let Some(first_child) = list_box_clone.first_child() {
+                    first_child.activate();
+                }
+            } else if key == gdk::Key::Up {
+                let mut count = 0;
+                let mut current = list_box_clone.first_child();
+                while let Some(widget) = current {
+                    count += 1;
+                    current = widget.next_sibling();
+                }
+                *activate_child_clone.borrow_mut() = count - 1;
+                if let Some(child) = list_box_clone.last_child() {
+                    child.activate();
+                }
+            }
+        }
         gtk::glib::Propagation::Proceed
     });
     input_bar.add_controller(enter_controller);
@@ -77,6 +107,7 @@ pub fn populate_list_box(
     list_box: &gtk::ListBox,
     indexed_entries: Vec<IndexedEntry>,
     search_query: String,
+    app: &gtk::Application,
 ) {
     while let Some(row) = list_box.last_child() {
         list_box.remove(&row);
@@ -97,7 +128,6 @@ pub fn populate_list_box(
         let name = unsafe { CStr::from_ptr(indexed_entry.entry.name).to_string_lossy() };
         let name_lower = name.to_lowercase();
 
-        // Simplified matching logic
         let matches = if query.is_empty() {
             true
         } else if default_prefix.is_empty() {
@@ -110,11 +140,10 @@ pub fn populate_list_box(
 
         if matches {
             let row = gtk::ListBoxRow::new();
-            // Store the IndexedEntry with the row
             unsafe {
                 row.set_data("entry_data", indexed_entry.clone());
             }
-            
+
             let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 10);
             if !indexed_entry.entry.icon.is_null() {
                 let icon_name =
@@ -124,6 +153,23 @@ pub fn populate_list_box(
                 hbox.append(&image);
             }
             let label = gtk::Label::new(Some(&name));
+            let gesture = gtk::GestureClick::new();
+            gesture.set_button(0);
+            let app = app.clone();
+            let indexed_entry = indexed_entry.clone();
+            gesture.connect_released(move |_, n_press, _, _| {
+                if n_press == 2 {
+                    unsafe {
+                        if (indexed_entry.plugin.handle_selection)(indexed_entry.entry.value) {
+                            app.quit();
+                        } else {
+                            println!("Failed to open application");
+                        }
+                    }
+                }
+            });
+            gesture.set_propagation_phase(gtk::PropagationPhase::Capture);
+            label.add_controller(gesture);
             hbox.append(&label);
             row.set_child(Some(&hbox));
             list_box.append(&row);

@@ -14,3 +14,5 @@ libc = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 fuzzy-matcher = "0.3.7"
+ignore = "0.4"
+xdg = "3.0.0"
