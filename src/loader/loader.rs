@@ -52,7 +52,6 @@ pub fn load_plugins(path: &Path) -> Vec<Plugin> {
                 println!("{:?}", file_path);
                 match entry.path().extension() {
                     Some(ext) if ext == "so" => {
-                        println!("Loading {:?}", file_path);
                         plugins.push(load_plugin(&file_path));
                     }
                     _ => {}

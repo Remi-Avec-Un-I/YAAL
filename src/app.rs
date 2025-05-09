@@ -28,6 +28,7 @@ pub fn on_activate(app: &gtk::Application) {
 
     window.set_default_size(400, 300);
     window.present();
+    println!("Window activated: {:?}", std::time::SystemTime::now());
 }
 
 pub fn load_css() {

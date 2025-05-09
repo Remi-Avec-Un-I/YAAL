@@ -1,7 +1,5 @@
 use gtk::{prelude::*, EventControllerKey};
 use std::ffi::CStr;
-use std::any::Any;
-use std::ptr::NonNull;
 
 use crate::logic::entries::IndexedEntry;
 
@@ -42,7 +40,6 @@ pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_
     let list_box_weak_activate = list_box.downgrade();
     let app = app.clone();
     input_bar.connect_activate(move |_entry| {
-        println!("Enter key pressed");
         if let Some(list_box) = list_box_weak_activate.upgrade() {
             if let Some(first_app) = list_box.first_child() {
                 first_app.activate();
