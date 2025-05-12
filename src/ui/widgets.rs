@@ -87,7 +87,7 @@ pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_
     let app_list_box_key_event = app.clone();
     let input_bar_key_event = input_bar.clone();
     let key_enter_controller = EventControllerKey::new();
-    key_enter_controller.connect_key_pressed(move |_, key, _, modifier| {
+    key_enter_controller.connect_key_pressed(move |_, key, _, _| {
         if key == gdk::Key::Return {
             if let Some(widget) = list_box_key_event.focus_child() {
                 if let Some(row) = widget.downcast_ref::<gtk::ListBoxRow>() {
