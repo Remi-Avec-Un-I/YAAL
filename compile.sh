@@ -1,7 +1,7 @@
 #!/bin/bash
 
 YAAL_DIR="$HOME/Documents/pro/YAAL"
-YAAL_PLUGIN_DIR="$HOME/Documents/pro/yaal_plugins/test_plugin/"
+YAAL_PLUGIN_DIR="$HOME/Documents/pro/yaal_plugins/applist"
 CONFIG_DIR="$HOME/.config/yaal"
 
 if [ ! -d "$CONFIG_DIR/plugins" ]; then

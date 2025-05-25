@@ -1,7 +1,7 @@
 use gtk::{prelude::*, EventControllerKey};
 use std::ffi::CStr;
 
-use crate::logic::entries::IndexedEntry;
+use crate::{loader::loader::Plugin, logic::entries::{query_entries, IndexedEntry}};
 
 pub fn vbox() -> gtk::Box {
     gtk::Box::builder()
@@ -17,23 +17,25 @@ pub fn input_bar() -> gtk::Entry {
 }
 
 
-pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_bar: &gtk::Entry, app: &gtk::Application) -> gtk::ListBox {
+pub fn list_box(plugins: Vec<Plugin>, search_query: String, input_bar: &gtk::Entry, app: &gtk::Application) -> gtk::ScrolledWindow {
     let list_box = gtk::ListBox::builder()
         .css_name("list-box")
         .selection_mode(gtk::SelectionMode::Single)
         .build();
     
-    populate_list_box(&list_box, indexed_entries.clone(), search_query);
+    let scrolled_window = gtk::ScrolledWindow::builder()
+        .child(&list_box)
+        .min_content_height(400)
+        .build();
+    
+    populate_list_box(&list_box, plugins.clone(), search_query);
     
     let list_box_weak = list_box.downgrade();
-    
-    let indexed_entries = indexed_entries.clone();
     
     input_bar.connect_changed(move |entry| {
         if let Some(list_box) = list_box_weak.upgrade() {
             let query = entry.text();
-            println!("query: {}", query);
-            populate_list_box(&list_box, indexed_entries.clone(), query.to_string());
+            populate_list_box(&list_box, plugins.clone(), query.to_string());
         }
     });
 
@@ -52,7 +54,7 @@ pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_
                         if (entry_data.plugin.handle_selection)(entry_data.entry.value) {
                             app_activate.quit();
                         } else {
-                            println!("Failed to open application");
+                            println!("Failed handle selection");
                         }
                     }
                 }
@@ -109,7 +111,6 @@ pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_
         if key == gdk::Key::Escape {
             app_list_box_key_event.quit();
         } else if let Some(unicode) = key.to_unicode() {
-            println!("key unicode: {}", key);
             if unicode.is_ascii_graphic() || unicode.is_ascii_whitespace() {
                 input_bar_key_event.grab_focus();
                 let entry_text = input_bar_key_event.text();
@@ -142,7 +143,6 @@ pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_
     let list_box_key_event = list_box.clone();
     let enter_controller = EventControllerKey::new();
     enter_controller.connect_key_pressed(move |_, key, _, _| {
-        println!("key: {}", key);
         if key == gdk::Key::Escape {
             app_key_event.quit();
         } else if key == gdk::Key::Down {
@@ -161,65 +161,40 @@ pub fn list_box(indexed_entries: Vec<IndexedEntry>, search_query: String, input_
         gtk::glib::Propagation::Stop
     });
     input_bar.add_controller(enter_controller);
-    list_box
+    scrolled_window
 }
 
-#[allow(dead_code)]
 pub fn populate_list_box(
     list_box: &gtk::ListBox,
-    indexed_entries: Vec<IndexedEntry>,
+    plugins: Vec<Plugin>,
     search_query: String,
 ) {
     while let Some(row) = list_box.last_child() {
         list_box.remove(&row);
     }
-    let query = search_query.clone().to_lowercase();
-    let mut count = 0;
-    let one_word = query.split(" ").count() == 1;
-    let prefix = query.split(" ").next().unwrap_or("");
-    let rest = query.split(" ").skip(1).collect::<Vec<&str>>().join(" ");
 
-    for indexed_entry in indexed_entries {
-        if count == 12 {
-            break;
+    let indexed_entries = query_entries(plugins.clone(), search_query);
+
+    for (i, indexed_entry) in indexed_entries.iter().enumerate() {
+        let row = gtk::ListBoxRow::new();
+        // Store the IndexedEntry with the row
+        unsafe {
+            row.set_data("entry_data", indexed_entry.clone());
         }
-        let default_prefix =
-            unsafe { CStr::from_ptr(indexed_entry.plugin.info.default_prefix).to_string_lossy() }
-                .to_lowercase();
-        let name = unsafe { CStr::from_ptr(indexed_entry.entry.name).to_string_lossy() };
-        let name_lower = name.to_lowercase();
-
-        // Simplified matching logic
-        let matches = if query.is_empty() {
-            true
-        } else if default_prefix.is_empty() {
-            name_lower.contains(&query)
-        } else if one_word {
-            default_prefix.starts_with(prefix)
-        } else {
-            default_prefix == prefix && name_lower.starts_with(&rest)
-        };
-
-        if matches {
-            let row = gtk::ListBoxRow::new();
-            // Store the IndexedEntry with the row
-            unsafe {
-                row.set_data("entry_data", indexed_entry.clone());
-            }
-            
-            let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-            if !indexed_entry.entry.icon.is_null() {
-                let icon_name =
-                    unsafe { CStr::from_ptr(indexed_entry.entry.icon).to_string_lossy() };
-                let image = gtk::Image::from_icon_name(&icon_name);
-                image.set_pixel_size(24);
-                hbox.append(&image);
-            }
-            let label = gtk::Label::new(Some(&name));
-            hbox.append(&label);
-            row.set_child(Some(&hbox));
-            list_box.append(&row);
-            count += 1;
+        
+        let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        if !indexed_entry.entry.icon.is_null() {
+            let icon_name =
+                unsafe { CStr::from_ptr(indexed_entry.entry.icon).to_string_lossy() };
+            let image = gtk::Image::from_icon_name(&icon_name);
+            image.set_pixel_size(24);
+            hbox.append(&image);
         }
+        let name = unsafe { CStr::from_ptr(indexed_entry.entry.name).to_string_lossy().into_owned() };
+        let label = gtk::Label::new(Some(&name));
+        unsafe { label.set_data("name", name); }  // Keep the string alive for the label's lifetime
+        hbox.append(&label);
+        row.set_child(Some(&hbox));
+        list_box.append(&row);
     }
 }

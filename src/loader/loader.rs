@@ -37,7 +37,7 @@ pub struct EntryList {
 #[allow(dead_code)]
 pub struct Plugin {
     pub info: PluginInfo,
-    pub get_entries: unsafe extern "C" fn() -> EntryList,
+    pub get_entries: unsafe extern "C" fn(query: *const c_char) -> EntryList,
     pub handle_selection: unsafe extern "C" fn(selection: *const c_char) -> bool,
 }
 
@@ -71,7 +71,7 @@ fn load_plugin(path: &PathBuf) -> Plugin {
             Ok(lib) => {
                 match (
                     lib.get::<*const PluginInfo>(b"PLUGIN_INFO"),
-                    lib.get::<unsafe extern "C" fn() -> EntryList>(b"get_entries"),
+                    lib.get::<unsafe extern "C" fn(query: *const c_char) -> EntryList>(b"get_entries"),
                     lib.get::<unsafe extern "C" fn(selection: *const c_char) -> bool>(b"handle_selection"),
                 ) {
                     (Ok(info_ptr), Ok(get_entries), Ok(handle_selection)) => {
