@@ -175,7 +175,7 @@ pub fn populate_list_box(
 
     let indexed_entries = query_entries(plugins.clone(), search_query);
 
-    for (i, indexed_entry) in indexed_entries.iter().enumerate() {
+    for indexed_entry in indexed_entries.iter() {
         let row = gtk::ListBoxRow::new();
         // Store the IndexedEntry with the row
         unsafe {

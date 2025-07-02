@@ -1,33 +1,22 @@
 #!/bin/bash
 
-YAAL_DIR="$HOME/Documents/pro/YAAL"
-YAAL_PLUGIN_DIR="$HOME/Documents/pro/yaal_plugins/applist"
-CONFIG_DIR="$HOME/.config/yaal"
+YAAL_DIR=$(pwd)
+YAAL_PLUGIN_DIR="$HOME/Documents/pro/yaal_plugins"
+YAAL_CONFIG_DIR="$HOME/.config/yaal"
 
-if [ ! -d "$CONFIG_DIR/plugins" ]; then
-    mkdir -p $CONFIG_DIR/plugins
-fi
-
-cd $YAAL_PLUGIN_DIR
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to navigate to $YAAL_PLUGIN_DIR"
-    exit 1
-fi
-
-echo "Building plugin..."
-cargo build --release
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to build the plugin"
-    exit 1
-fi
-
-
-rm -f $CONFIG_DIR/plugins/libtest_plugin.so
-cp -v "target/release/libtest_plugin.so" "$CONFIG_DIR/plugins/"
-
-
-echo "Plugin compiled and copied to $CONFIG_DIR/plugins/"
+for plugin in $YAAL_PLUGIN_DIR/*; do
+    if [[ $@ == *"$(basename $plugin)"* ]]; then
+        echo "Skipping $plugin"
+        continue
+    fi
+    cd $plugin
+    echo $plugin
+    if [ -f Cargo.toml ]; then
+        cargo build --release
+        path=$(realpath $(find target/release -type f -name "*.so" | head -n 1))
+    fi
+    cp $path $YAAL_CONFIG_DIR/plugins/
+done
 
 cd $YAAL_DIR
 cargo run
-

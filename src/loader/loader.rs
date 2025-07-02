@@ -1,10 +1,8 @@
 use libloading::Library;
 use std::{
-    ffi::CStr,
-    fs,
-    os::raw::c_char,
-    path::{Path, PathBuf},
+    collections::HashMap, ffi::CStr, fs, os::raw::c_char, path::{Path, PathBuf}
 };
+use crate::logic::entries::get_config;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -14,6 +12,7 @@ pub struct PluginInfo {
     pub description: *const c_char,
     pub author: *const c_char,
     pub default_prefix: *const c_char,
+    pub default_config: *const c_char,
 }
 
 #[repr(C)]
@@ -41,10 +40,25 @@ pub struct Plugin {
     pub handle_selection: unsafe extern "C" fn(selection: *const c_char) -> bool,
 }
 
-pub fn load_plugins(path: &Path) -> Vec<Plugin> {
+pub fn get_config_hashmap(config_path: &Path) -> HashMap<String, HashMap<String, String>> {
+    let mut configs_hashmap = HashMap::new();
+    let configs = get_config(config_path);
+    for plugin in configs.plugins {
+        let mut pairs = HashMap::new();
+        for (key, value) in plugin.extra {
+            pairs.insert(key, value);
+        }
+        pairs.insert("prefix".to_string(), plugin.prefix.clone());
+        configs_hashmap.insert(plugin.name.clone(), pairs);
+    }
+    configs_hashmap
+}
+
+pub fn load_plugins(plugins_folder: &Path, config_path: &Path) -> Vec<Plugin> {
     // preferably the ~/.config/yaal/plugins directory
     let mut plugins = Vec::new();
-    let files = fs::read_dir(path).unwrap();
+    let files = fs::read_dir(plugins_folder).unwrap();
+    let configs = get_config_hashmap(config_path);
     for entry in files {
         match entry {
             Ok(entry) => {
@@ -52,7 +66,7 @@ pub fn load_plugins(path: &Path) -> Vec<Plugin> {
                 println!("{:?}", file_path);
                 match entry.path().extension() {
                     Some(ext) if ext == "so" => {
-                        plugins.push(load_plugin(&file_path));
+                        plugins.push(load_plugin(&file_path, &configs));
                     }
                     _ => {}
                 }
@@ -65,7 +79,7 @@ pub fn load_plugins(path: &Path) -> Vec<Plugin> {
     plugins
 }
 
-fn load_plugin(path: &PathBuf) -> Plugin {
+fn load_plugin(path: &PathBuf, configs: &HashMap<String, HashMap<String, String>>) -> Plugin {
     unsafe {
         match Library::new(path) {
             Ok(lib) => {
@@ -73,8 +87,14 @@ fn load_plugin(path: &PathBuf) -> Plugin {
                     lib.get::<*const PluginInfo>(b"PLUGIN_INFO"),
                     lib.get::<unsafe extern "C" fn(query: *const c_char) -> EntryList>(b"get_entries"),
                     lib.get::<unsafe extern "C" fn(selection: *const c_char) -> bool>(b"handle_selection"),
+                    lib.get::<unsafe extern "C" fn(config: *const c_char) -> bool>(b"init_config"),
                 ) {
-                    (Ok(info_ptr), Ok(get_entries), Ok(handle_selection)) => {
+                    (
+                        Ok(info_ptr),
+                        Ok(get_entries),
+                        Ok(handle_selection),
+                        Ok(init_config),
+                    ) => {
                         let info: &PluginInfo = &**info_ptr;
                         println!("Plugin Info:");
                         println!("  Name: {}", CStr::from_ptr(info.name).to_string_lossy());
@@ -86,11 +106,29 @@ fn load_plugin(path: &PathBuf) -> Plugin {
                             "  Description: {}",
                             CStr::from_ptr(info.description).to_string_lossy()
                         );
+                        
+                        let plugin_name = CStr::from_ptr(info.name).to_string_lossy().to_string();
+                        let current_config = configs.get(&plugin_name);
+                        
+                        // Initialize config if available
+                        if let Some(config) = current_config {
+                            // Convert config to JSON string for the plugin
+                            let config_json = serde_json::to_string(config).unwrap();
+                            let config_cstr = format!("{}\0", config_json);
+                            (init_config)(config_cstr.as_ptr() as *const c_char);
+                        } else {
+                            // Pass empty config if no config found
+                            let empty_config = "{}";
+                            let config_cstr = format!("{}\0", empty_config);
+                            (init_config)(config_cstr.as_ptr() as *const c_char);
+                        }
+                        
                         let plugin = Plugin {
                             info: *info,
                             get_entries: *get_entries,
                             handle_selection: *handle_selection,
                         };
+                        
                         std::mem::forget(lib);
                         plugin
                     }
