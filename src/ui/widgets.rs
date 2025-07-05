@@ -190,6 +190,11 @@ pub fn populate_list_box(
             image.set_pixel_size(24);
             hbox.append(&image);
         }
+        if !indexed_entry.entry.emoji.is_null() {
+            let emoji = unsafe { CStr::from_ptr(indexed_entry.entry.emoji).to_string_lossy() };
+            let label = gtk::Label::new(Some(&emoji));
+            hbox.append(&label);
+        }
         let name = unsafe { CStr::from_ptr(indexed_entry.entry.name).to_string_lossy().into_owned() };
         let label = gtk::Label::new(Some(&name));
         unsafe { label.set_data("name", name); }  // Keep the string alive for the label's lifetime

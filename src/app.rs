@@ -86,7 +86,7 @@ pub fn load_config() -> Config {
                 fullscreened: false,
                 custom_css: None,
             },
-            plugins: Vec::new(),
+            plugins: Some(Vec::new()),
         }
     }
 }

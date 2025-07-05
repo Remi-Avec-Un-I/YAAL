@@ -24,7 +24,7 @@ pub struct PluginConfig {
 pub struct Config {
     pub yaal: YaalConfig,
     #[serde(rename = "plugins")]
-    pub plugins: Vec<PluginConfig>,
+    pub plugins: Option<Vec<PluginConfig>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -70,16 +70,13 @@ pub fn query_entries(plugins: Vec<Plugin>, query: String) -> Vec<IndexedEntry> {
     for plugin in plugins.iter() {
         let default_prefix = unsafe { CStr::from_ptr(plugin.info.default_prefix).to_string_lossy() };
         
-        if default_prefix.is_empty() || default_prefix == prefix {
-            let query_cstr = format!("{}\0", rest);
+        if default_prefix.is_empty() || default_prefix == prefix || prefix.starts_with(default_prefix.to_string().as_str()) {
+            let query_cstr = format!("{}\0", query);
             let entries = unsafe { (plugin.get_entries)(query_cstr.as_ptr() as *const c_char) };
-            
+            println!("Entries: {:?}", entries.length);
             for i in 0..entries.length {
                 let entry = unsafe { &*entries.entries.add(i) };
-                let entry_name = unsafe { CStr::from_ptr(entry.name).to_string_lossy() };
-                if entry_name.to_lowercase().contains(&rest.to_lowercase()) {
-                    query_entries.push(IndexedEntry { entry: *entry, plugin: plugin.clone() });
-                }
+                query_entries.push(IndexedEntry { entry: *entry, plugin: plugin.clone() });
             }
         }
     }

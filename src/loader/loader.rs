@@ -1,6 +1,6 @@
 use libloading::Library;
 use std::{
-    collections::HashMap, ffi::CStr, fs, os::raw::c_char, path::{Path, PathBuf}
+    collections::HashMap, ffi::CStr, fs, os::raw::c_char, path::{Path, PathBuf}, process::exit
 };
 use crate::logic::entries::get_config;
 
@@ -43,13 +43,15 @@ pub struct Plugin {
 pub fn get_config_hashmap(config_path: &Path) -> HashMap<String, HashMap<String, String>> {
     let mut configs_hashmap = HashMap::new();
     let configs = get_config(config_path);
-    for plugin in configs.plugins {
-        let mut pairs = HashMap::new();
-        for (key, value) in plugin.extra {
-            pairs.insert(key, value);
+    if let Some(plugins) = configs.plugins {
+        for plugin in plugins {
+            let mut pairs = HashMap::new();
+            for (key, value) in plugin.extra {
+                pairs.insert(key, value);
+            }
+            pairs.insert("prefix".to_string(), plugin.prefix.clone());
+            configs_hashmap.insert(plugin.name.clone(), pairs);
         }
-        pairs.insert("prefix".to_string(), plugin.prefix.clone());
-        configs_hashmap.insert(plugin.name.clone(), pairs);
     }
     configs_hashmap
 }
@@ -110,14 +112,16 @@ fn load_plugin(path: &PathBuf, configs: &HashMap<String, HashMap<String, String>
                         let plugin_name = CStr::from_ptr(info.name).to_string_lossy().to_string();
                         let current_config = configs.get(&plugin_name);
                         
-                        // Initialize config if available
                         if let Some(config) = current_config {
-                            // Convert config to JSON string for the plugin
-                            let config_json = serde_json::to_string(config).unwrap();
-                            let config_cstr = format!("{}\0", config_json);
-                            (init_config)(config_cstr.as_ptr() as *const c_char);
+                            let config_json = serde_json::to_string(config);
+                            if let Ok(config_json) = config_json {
+                                let config_cstr = format!("{}\0", config_json);
+                                (init_config)(config_cstr.as_ptr() as *const c_char);
+                            } else {
+                                println!("Failed to convert config to JSON");
+                                exit(1);
+                            }
                         } else {
-                            // Pass empty config if no config found
                             let empty_config = "{}";
                             let config_cstr = format!("{}\0", empty_config);
                             (init_config)(config_cstr.as_ptr() as *const c_char);
