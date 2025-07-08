@@ -4,6 +4,7 @@ A modern GTK4 application launcher written in Rust.
 
 ## Features
 
+
 - Fast application launching
 - Plugin system for extensibility
 - Modern GTK4 interface
