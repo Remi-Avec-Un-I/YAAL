@@ -1,6 +1,6 @@
 # Maintainer: Remi-Avec-Un-I <ri@jsp13.com>
 pkgname=YAAL
-pkgver=1.0.4
+pkgver=1.0.5
 pkgrel=1
 pkgdesc="Yet Another Awesome Launcher, even tho it can do more"
 arch=('x86_64')
