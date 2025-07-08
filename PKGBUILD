@@ -1,15 +1,15 @@
 # Maintainer: Remi-Avec-Un-I <ri@jsp13.com>
-pkgname=YAAL
-pkgver=1.0.5
+pkgname=yaal
+pkgver=1.0.6
 pkgrel=1
 pkgdesc="Yet Another Awesome Launcher, even tho it can do more"
 arch=('x86_64')
-url="https://github.com/Remi-Avec-Un-I/YAAL"
+url="https://github.com/Remi-Avec-Un-I/yaal"
 license=('MIT')
 depends=('gcc-libs')
 makedepends=('rust' 'cargo')
 provides=('yaal')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/Remi-Avec-Un-I/YAAL/archive/v$pkgver.tar.gz")
+source=("$pkgname-$pkgver.tar.gz::https://github.com/Remi-Avec-Un-I/$pkgname/archive/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 
