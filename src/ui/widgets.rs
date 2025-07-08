@@ -48,13 +48,8 @@ pub fn list_box(plugins: Vec<Plugin>, search_query: String, input_bar: &gtk::Ent
                 unsafe {
                     if let Some(entry_data) = first_app.data::<IndexedEntry>("entry_data") {
                         let entry_data = entry_data.as_ref();
-                        let name = CStr::from_ptr(entry_data.entry.name).to_string_lossy();
-                        let value = CStr::from_ptr(entry_data.entry.value).to_string_lossy();
-                        println!("Selected entry: {} with value: {}", name, value);
                         if (entry_data.plugin.handle_selection)(entry_data.entry.value) {
                             app_activate.quit();
-                        } else {
-                            println!("Failed handle selection");
                         }
                     }
                 }
@@ -73,9 +68,6 @@ pub fn list_box(plugins: Vec<Plugin>, search_query: String, input_bar: &gtk::Ent
                 unsafe {
                     if let Some(entry_data) = row.data::<IndexedEntry>("entry_data") {
                         let entry_data = entry_data.as_ref();
-                        let name = CStr::from_ptr(entry_data.entry.name).to_string_lossy();
-                        let value = CStr::from_ptr(entry_data.entry.value).to_string_lossy();
-                        println!("Double-clicked entry: {} with value: {}", name, value);
                         if (entry_data.plugin.handle_selection)(entry_data.entry.value) {
                             app_double_click.quit();
                         }
@@ -97,9 +89,6 @@ pub fn list_box(plugins: Vec<Plugin>, search_query: String, input_bar: &gtk::Ent
                     unsafe {
                         if let Some(entry_data) = row.data::<IndexedEntry>("entry_data") {
                             let entry_data = entry_data.as_ref();
-                            let name = CStr::from_ptr(entry_data.entry.name).to_string_lossy();
-                            let value = CStr::from_ptr(entry_data.entry.value).to_string_lossy();
-                            println!("Selected entry: {} with value: {}", name, value);
                             if (entry_data.plugin.handle_selection)(entry_data.entry.value) {
                                 app_list_box_key_event.quit();
                             }

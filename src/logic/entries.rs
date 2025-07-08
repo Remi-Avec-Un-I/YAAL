@@ -61,11 +61,6 @@ impl Config {
 pub fn query_entries(plugins: Vec<Plugin>, query: String) -> Vec<IndexedEntry> {
     let mut query_entries = Vec::new();
     let prefix = query.split(" ").next().unwrap_or("");
-    let rest = query.split(" ").skip(1).collect::<Vec<&str>>().join(" ");
-    let mut rest = rest.clone();
-    if rest.is_empty() {
-        rest = prefix.to_string();
-    }
     
     for plugin in plugins.iter() {
         let default_prefix = unsafe { CStr::from_ptr(plugin.info.default_prefix).to_string_lossy() };
@@ -73,7 +68,6 @@ pub fn query_entries(plugins: Vec<Plugin>, query: String) -> Vec<IndexedEntry> {
         if default_prefix.is_empty() || default_prefix == prefix || prefix.starts_with(default_prefix.to_string().as_str()) {
             let query_cstr = format!("{}\0", query);
             let entries = unsafe { (plugin.get_entries)(query_cstr.as_ptr() as *const c_char) };
-            println!("Entries: {:?}", entries.length);
             for i in 0..entries.length {
                 let entry = unsafe { &*entries.entries.add(i) };
                 query_entries.push(IndexedEntry { entry: *entry, plugin: plugin.clone() });

@@ -65,7 +65,6 @@ pub fn load_plugins(plugins_folder: &Path, config_path: &Path) -> Vec<Plugin> {
         match entry {
             Ok(entry) => {
                 let file_path = entry.path();
-                println!("{:?}", file_path);
                 match entry.path().extension() {
                     Some(ext) if ext == "so" => {
                         plugins.push(load_plugin(&file_path, &configs));
