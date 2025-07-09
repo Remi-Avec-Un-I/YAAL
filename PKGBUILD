@@ -10,8 +10,7 @@ depends=('gcc-libs')
 makedepends=('rust' 'cargo')
 provides=('yaal')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Remi-Avec-Un-I/$pkgname/archive/v$pkgver.tar.gz")
-sha256sums=('SKIP')
-
+sha256sums=('06948073fa07aaeb3fcd71835e7c182b00aba0e89166a1aaa1bcbaf05e25f77a')
 
 build() {
   cd "$pkgname-$pkgver"
